@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+@theme {
+  --color-shell: #17171d;
+  --color-control: #25252d;
+  --color-panel: #f4f4f5;
+  --color-ink: #121216;
+  --color-muted: #565864;
+  --color-quiet: #b9b9c4;
+  --color-line: #e8e8ee;
+  --color-well: #f6f6f8;
+  --color-lilac: #eeecfb;
+  --color-accent: #544dc3;
+  --color-violet: #6862d9;
+  --color-orange: #a94b14;
+  --color-apricot: #ffebd8;
+  --color-error: #ab2d32;
+}
