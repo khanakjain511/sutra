@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["AttendanceFaceModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.attendanceface.AttendanceFaceModule"]
+  }
+}
