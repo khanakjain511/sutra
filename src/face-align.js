@@ -1,16 +1,14 @@
-const template: [number, number][] = [
+const template = [
   [38.2946, 51.6963],
   [73.5318, 51.5014],
   [56.0252, 71.7366],
   [41.5493, 92.3655],
   [70.7299, 92.2041],
 ];
-const destinationMean = [56.0262, 71.9008] as const;
+const destinationMean = [56.0262, 71.9008];
 const floatMinimum = 1.17549435e-38;
 
-type Matrix2 = [number, number, number, number];
-
-function multiply(left: Matrix2, right: Matrix2): Matrix2 {
+function multiply(left, right) {
   return [
     left[0] * right[0] + left[1] * right[2],
     left[0] * right[1] + left[1] * right[3],
@@ -19,13 +17,13 @@ function multiply(left: Matrix2, right: Matrix2): Matrix2 {
   ];
 }
 
-function determinant(matrix: Matrix2) {
+function determinant(matrix) {
   return matrix[0] * matrix[3] - matrix[1] * matrix[2];
 }
 
-function svd2(matrix: Matrix2) {
+function svd2(matrix) {
   const [a, b, c, d] = matrix;
-  const symmetric: Matrix2 = [
+  const symmetric = [
     a * a + c * c,
     a * b + c * d,
     a * b + c * d,
@@ -35,7 +33,7 @@ function svd2(matrix: Matrix2) {
   const angle = 0.5 * Math.atan2(2 * symmetric[1], shift);
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
-  const basis: Matrix2[] = [
+  const basis = [
     [cosine, -sine, sine, cosine],
     [-sine, -cosine, cosine, -sine],
   ];
@@ -46,8 +44,8 @@ function svd2(matrix: Matrix2) {
     const inverse = singular > floatMinimum ? 1 / singular : 0;
     return {
       singular,
-      v: [vx, vy] as const,
-      u: [(a * vx + b * vy) * inverse, (c * vx + d * vy) * inverse] as const,
+      v: [vx, vy],
+      u: [(a * vx + b * vy) * inverse, (c * vx + d * vy) * inverse],
     };
   });
   columns.sort((left, right) => right.singular - left.singular);
@@ -61,15 +59,13 @@ function svd2(matrix: Matrix2) {
     second.u = [-first.u[1], first.u[0]];
   }
   return {
-    u: [first.u[0], second.u[0], first.u[1], second.u[1]] as Matrix2,
-    s: [first.singular, second.singular] as const,
-    vt: [first.v[0], first.v[1], second.v[0], second.v[1]] as Matrix2,
+    u: [first.u[0], second.u[0], first.u[1], second.u[1]],
+    s: [first.singular, second.singular],
+    vt: [first.v[0], first.v[1], second.v[0], second.v[1]],
   };
 }
 
-export function similarityMatrix(
-  source: readonly (readonly [number, number])[],
-) {
+export function similarityMatrix(source) {
   if (source.length !== 5) throw new Error('Five landmarks are required');
   let sourceMeanX = 0;
   let sourceMeanY = 0;
@@ -79,13 +75,15 @@ export function similarityMatrix(
   }
   sourceMeanX /= 5;
   sourceMeanY /= 5;
-  const sourceDemean = source.map(
-    ([x, y]) => [x - sourceMeanX, y - sourceMeanY] as const,
-  );
-  const destinationDemean = template.map(
-    ([x, y]) => [x - destinationMean[0], y - destinationMean[1]] as const,
-  );
-  const covariance: Matrix2 = [0, 0, 0, 0];
+  const sourceDemean = source.map(([x, y]) => [
+    x - sourceMeanX,
+    y - sourceMeanY,
+  ]);
+  const destinationDemean = template.map(([x, y]) => [
+    x - destinationMean[0],
+    y - destinationMean[1],
+  ]);
+  const covariance = [0, 0, 0, 0];
   for (let index = 0; index < 5; index += 1) {
     const from = sourceDemean[index];
     const to = destinationDemean[index];
@@ -95,7 +93,7 @@ export function similarityMatrix(
     covariance[2] += (to[1] * from[0]) / 5;
     covariance[3] += (to[1] * from[1]) / 5;
   }
-  const signs: [number, number] = [1, determinant(covariance) < 0 ? -1 : 1];
+  const signs = [1, determinant(covariance) < 0 ? -1 : 1];
   const { u, s, vt } = svd2(covariance);
   const maximum = Math.max(s[0], s[1]);
   const tolerance = maximum * 2 * floatMinimum;
@@ -124,15 +122,15 @@ export function similarityMatrix(
     rotation[2] * scale,
     rotation[3] * scale,
     destinationMean[1] - scale * translatedY,
-  ] as const;
+  ];
 }
 
-function sample(pixels: Uint8ClampedArray, size: number, x: number, y: number) {
+function sample(pixels, size, x, y) {
   const x0 = Math.floor(x);
   const y0 = Math.floor(y);
   const dx = x - x0;
   const dy = y - y0;
-  const read = (px: number, py: number) => {
+  const read = (px, py) => {
     if (px < 0 || py < 0 || px >= size || py >= size) return [0, 0, 0];
     const offset = (py * size + px) * 4;
     return [
@@ -154,11 +152,7 @@ function sample(pixels: Uint8ClampedArray, size: number, x: number, y: number) {
   });
 }
 
-export function warpAlignedFace(
-  pixels: Uint8ClampedArray,
-  size: number,
-  source: readonly (readonly [number, number])[],
-) {
+export function warpAlignedFace(pixels, size, source) {
   const [a, b, tx, c, d, ty] = similarityMatrix(source);
   const determinantValue = a * d - b * c;
   if (!Number.isFinite(determinantValue) || Math.abs(determinantValue) < 1e-8) {
@@ -188,8 +182,8 @@ export function warpAlignedFace(
   return output;
 }
 
-export function landmarksFromFace(face: ArrayLike<number>) {
-  const points: [number, number][] = [];
+export function landmarksFromFace(face) {
+  const points = [];
   for (let index = 0; index < 5; index += 1) {
     points.push([
       face[4 + index * 2] ?? Number.NaN,

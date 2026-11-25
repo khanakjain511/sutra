@@ -1,7 +1,0 @@
-gradle.beforeSettings { settings ->
-    settings.pluginManagement.resolutionStrategy.eachPlugin {
-        if (requested.id.id == 'org.gradle.toolchains.foojay-resolver-convention') {
-            useVersion('1.0.0')
-        }
-    }
-}

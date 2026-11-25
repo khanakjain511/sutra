@@ -14,7 +14,7 @@ import {
   readSubjects,
   subjectSummary,
   readLog,
-} from '../src/attendance';
+} from '../src/attendance.js';
 
 test('uses the India calendar across midnight UTC offsets', () => {
   assert.equal(currentDay(new Date('2026-11-23T18:29:59Z')), '2026-11-23');
@@ -145,7 +145,7 @@ test('shows confirmed and missed classes in the selected month from each subject
   const markedMath = markSubject(math, enrolled, '2026-11-23', '2026-11-23');
   const markedPhysics = markSubject(physics, enrolled, today, today);
   const subjects = [markedMath, markedPhysics];
-  const rows = (month: string) =>
+  const rows = (month) =>
     attendanceHistory(subjects, enrolled, today, month).map(
       ({ day, name, present }) => [day, name, present],
     );

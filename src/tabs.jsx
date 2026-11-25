@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
-import { Glyph, type IconName } from './ui';
+import { Glyph } from './ui';
 
 export const tabs = [
   {
@@ -32,17 +32,9 @@ export const tabs = [
     icon: 'time-outline',
     activeIcon: 'time',
   },
-] as const satisfies readonly {
-  id: string;
-  label: string;
-  title: string;
-  icon: IconName;
-  activeIcon: IconName;
-}[];
+];
 
-export type Tab = (typeof tabs)[number]['id'];
-
-function browserTab(): Tab {
+function browserTab() {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return 'overview';
   const hash = window.location.hash.slice(1);
   return tabs.find((item) => item.id === hash)?.id ?? 'overview';
@@ -51,23 +43,17 @@ function browserTab(): Tab {
 export function useTabs() {
   const [tab, setTab] = useState(browserTab);
   const active = useRef(tab);
-  const history = useRef<Tab[]>([]);
 
-  const show = useCallback((next: Tab) => {
+  const show = useCallback((next) => {
     active.current = next;
     setTab(next);
   }, []);
 
   const select = useCallback(
-    (next: Tab) => {
+    (next) => {
       if (next === active.current) return;
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         window.history.pushState(null, '', `#${next}`);
-      } else {
-        history.current = [
-          ...history.current.filter((item) => item !== next),
-          active.current,
-        ];
       }
       show(next);
     },
@@ -84,31 +70,15 @@ export function useTabs() {
         window.removeEventListener('hashchange', restore);
       };
     }
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        const previous = history.current.pop();
-        if (!previous && active.current === 'overview') return false;
-        show(previous ?? 'overview');
-        return true;
-      },
-    );
-    return () => subscription.remove();
   }, [show]);
 
   return { tab, select };
 }
 
-export function TabBar({
-  current,
-  onSelect,
-}: {
-  current: Tab;
-  onSelect: (tab: Tab) => void;
-}) {
+export function TabBar({ current, onSelect }) {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    function move(event: KeyboardEvent) {
+    function move(event) {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
       const index = tabs.findIndex(

@@ -1,7 +1,7 @@
-import { isDay } from './attendance';
-import { FaceRejected } from './face-error';
+import { isDay } from './attendance.js';
+import { FaceRejected } from './face-error.js';
 
-export function encodeTemplate(day: string, feature: ArrayLike<number>) {
+export function encodeTemplate(day, feature) {
   if (!isDay(day) || feature.length !== 128) {
     throw new FaceRejected('captureFailed');
   }
@@ -18,7 +18,7 @@ export function encodeTemplate(day: string, feature: ArrayLike<number>) {
   return bytes;
 }
 
-export function decodeTemplate(bytes: Uint8Array) {
+export function decodeTemplate(bytes) {
   const dayLength = bytes[0];
   if (
     dayLength === undefined ||

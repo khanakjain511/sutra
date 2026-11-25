@@ -1,18 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { ComponentProps, ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
-export type IconName = ComponentProps<typeof Ionicons>['name'];
-
-export function Glyph({
-  name,
-  tone = 'accent',
-  size = 20,
-}: {
-  name: IconName;
-  tone?: 'accent' | 'ink' | 'white' | 'muted' | 'light';
-  size?: number;
-}) {
+export function Glyph({ name, tone = 'accent', size = 20 }) {
   const colors = {
     accent: '#544dc3',
     ink: '#121216',
@@ -31,7 +20,7 @@ export function Glyph({
   );
 }
 
-export function IconDisc({ name }: { name: IconName }) {
+export function IconDisc({ name }) {
   return (
     <View className="size-10 shrink-0 items-center justify-center rounded-full bg-lilac">
       <Glyph name={name} size={18} />
@@ -39,15 +28,7 @@ export function IconDisc({ name }: { name: IconName }) {
   );
 }
 
-export function Section({
-  children,
-  title,
-  action,
-}: {
-  children: ReactNode;
-  title?: string;
-  action?: ReactNode;
-}) {
+export function Section({ children, title, action }) {
   return (
     <View className="gap-4 rounded-[30px] bg-panel p-4 sm:p-5">
       {title ? (
@@ -66,19 +47,7 @@ export function Section({
   );
 }
 
-export function Button({
-  children,
-  onPress,
-  icon,
-  disabled,
-  subtle = false,
-}: {
-  children: string;
-  onPress: () => void;
-  icon?: IconName;
-  disabled?: boolean;
-  subtle?: boolean;
-}) {
+export function Button({ children, onPress, icon, disabled, subtle = false }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -108,13 +77,7 @@ export function Button({
   );
 }
 
-export function Status({
-  text,
-  error = false,
-}: {
-  text: string;
-  error?: boolean;
-}) {
+export function Status({ text, error = false }) {
   return (
     <View className="rounded-2xl bg-white p-3">
       <Text
@@ -127,7 +90,7 @@ export function Status({
   );
 }
 
-export function Loading({ text }: { text: string }) {
+export function Loading({ text }) {
   return (
     <View className="flex-row items-center gap-3 py-3">
       <ActivityIndicator color="#544dc3" />

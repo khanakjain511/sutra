@@ -1,9 +1,6 @@
 {
-  "platforms": ["apple", "android"],
+  "platforms": ["apple"],
   "apple": {
     "modules": ["AttendanceFaceModule"]
-  },
-  "android": {
-    "modules": ["expo.modules.attendanceface.AttendanceFaceModule"]
   }
 }

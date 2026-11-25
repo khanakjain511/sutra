@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
-import { defaultWeekdays, type Subject } from './attendance';
+import { defaultWeekdays } from './attendance';
 import { Button, Status } from './ui';
 
 const days = [
@@ -12,26 +12,16 @@ const days = [
   [5, 'Fri', 'Friday'],
   [6, 'Sat', 'Saturday'],
   [0, 'Sun', 'Sunday'],
-] as const;
+];
 
-export function formatSchedule(weekdays: readonly number[]) {
+export function formatSchedule(weekdays) {
   return days
     .filter(([day]) => weekdays.includes(day))
     .map(([, short]) => short)
     .join(' · ');
 }
 
-function Option({
-  label,
-  accessibleLabel,
-  selected,
-  onPress,
-}: {
-  label: string;
-  accessibleLabel?: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
+function Option({ label, accessibleLabel, selected, onPress }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -57,15 +47,7 @@ function Option({
   );
 }
 
-export function SubjectOptions({
-  subjects,
-  selected,
-  onSelect,
-}: {
-  subjects: Subject[];
-  selected: string | null;
-  onSelect: (id: string) => void;
-}) {
+export function SubjectOptions({ subjects, selected, onSelect }) {
   return (
     <View className="flex-row flex-wrap gap-2">
       {subjects.map((subject) => (
@@ -80,20 +62,10 @@ export function SubjectOptions({
   );
 }
 
-export function Subjects({
-  subjects,
-  selected,
-  onSelect,
-  onAdd,
-}: {
-  subjects: Subject[];
-  selected: string | null;
-  onSelect: (id: string) => void;
-  onAdd: (name: string, schedule: number[]) => Promise<void>;
-}) {
+export function Subjects({ subjects, selected, onSelect, onAdd }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [weekdays, setWeekdays] = useState<number[]>([...defaultWeekdays]);
+  const [weekdays, setWeekdays] = useState([...defaultWeekdays]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const pending = useRef(false);

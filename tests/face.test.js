@@ -1,18 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { similarityMatrix, warpAlignedFace } from '../src/face-align';
-import { FaceRejected } from '../src/face-error';
+import { similarityMatrix, warpAlignedFace } from '../src/face-align.js';
+import { FaceRejected } from '../src/face-error.js';
 import {
   assessFace,
   FaceSession,
   normalizeFeature,
-  type FaceSample,
-} from '../src/face-session';
-import { decodeTemplate, encodeTemplate } from '../src/face-template';
-import { decodeYuNet, type FaceTensor } from '../src/yunet';
+} from '../src/face-session.js';
+import { decodeTemplate, encodeTemplate } from '../src/face-template.js';
+import { decodeYuNet } from '../src/yunet.js';
 
-const template: [number, number][] = [
+const template = [
   [38.2946, 51.6963],
   [73.5318, 51.5014],
   [56.0252, 71.7366],
@@ -20,23 +19,23 @@ const template: [number, number][] = [
   [70.7299, 92.2041],
 ];
 
-function feature(index: number) {
+function feature(index) {
   const values = new Float32Array(128);
   values[index] = 1;
   return values;
 }
 
 function memoryStore() {
-  let stored: { enrolledOn: string; feature: Float32Array } | null = null;
+  let stored = null;
   return {
     read: async () => stored,
-    write: async (day: string, value: Float32Array) => {
+    write: async (day, value) => {
       stored = { enrolledOn: day, feature: Float32Array.from(value) };
     },
   };
 }
 
-function zeros(cells: number, channels: number): FaceTensor {
+function zeros(cells, channels) {
   return {
     data: new Float32Array(cells * channels),
     dims: [1, cells, channels],
@@ -44,7 +43,7 @@ function zeros(cells: number, channels: number): FaceTensor {
 }
 
 function outputs() {
-  const planes: Record<string, FaceTensor> = {};
+  const planes = {};
   for (const stride of [8, 16, 32]) {
     const cells = (640 / stride) ** 2;
     planes[`cls_${stride}`] = zeros(cells, 1);
@@ -64,8 +63,8 @@ test('face session enrolls a straight view and a real head turn', async () => {
     () => time,
     () => '2026-11-23',
   );
-  const straight: FaceSample = { feature: feature(0), yaw: 0.02 };
-  const turn: FaceSample = { feature: feature(0), yaw: 0.42 };
+  const straight = { feature: feature(0), yaw: 0.02 };
+  const turn = { feature: feature(0), yaw: 0.42 };
   assert.equal(await session.captureStraight(straight, true), 'turn');
   assert.equal(await session.captureTurn(turn), 'verified');
   assert.equal(await session.confirm(), '2026-11-23');
@@ -128,15 +127,13 @@ test('face geometry keeps a level centered face and rejects the edges', () => {
   assert.ok(Math.abs(assessFace(320, 400, face)) < 0.2);
   assert.throws(
     () => assessFace(200, 220, face),
-    (error: unknown) =>
-      error instanceof FaceRejected && error.status === 'centerFace',
+    (error) => error instanceof FaceRejected && error.status === 'centerFace',
   );
   const tilted = [...face];
   tilted[5] = 40;
   assert.throws(
     () => assessFace(320, 400, tilted),
-    (error: unknown) =>
-      error instanceof FaceRejected && error.status === 'keepLevel',
+    (error) => error instanceof FaceRejected && error.status === 'keepLevel',
   );
 });
 
@@ -157,9 +154,9 @@ test('template codec round-trips one normalized face', () => {
 test('YuNet keeps one strong face and separates two', () => {
   const single = outputs();
   const cells = (640 / 8) ** 2;
-  const cls = single.cls_8?.data as Float32Array;
-  const obj = single.obj_8?.data as Float32Array;
-  const bbox = single.bbox_8?.data as Float32Array;
+  const cls = single.cls_8?.data;
+  const obj = single.obj_8?.data;
+  const bbox = single.bbox_8?.data;
   const index = 10 * 80 + 12;
   cls[index] = 1;
   obj[index] = 1;
@@ -174,10 +171,10 @@ test('YuNet keeps one strong face and separates two', () => {
 
   const pair = outputs();
   for (const cell of [index, 40 * 80 + 40]) {
-    (pair.cls_8?.data as Float32Array)[cell] = 1;
-    (pair.obj_8?.data as Float32Array)[cell] = 1;
-    (pair.bbox_8?.data as Float32Array)[cell * 4 + 2] = Math.log(8);
-    (pair.bbox_8?.data as Float32Array)[cell * 4 + 3] = Math.log(8);
+    pair.cls_8.data[cell] = 1;
+    pair.obj_8.data[cell] = 1;
+    pair.bbox_8.data[cell * 4 + 2] = Math.log(8);
+    pair.bbox_8.data[cell * 4 + 3] = Math.log(8);
   }
   assert.equal(decodeYuNet(pair).length, 2);
 });

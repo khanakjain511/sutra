@@ -1,7 +1,3 @@
-const { defineConfig } = require('eslint/config');
-const expo = require('eslint-config-expo/flat');
+const expoConfig = require('eslint-config-expo/flat');
 
-module.exports = defineConfig([
-  expo,
-  { ignores: ['android/**', 'ios/**', 'dist/**', 'uniwind-types.d.ts'] },
-]);
+module.exports = [...expoConfig, { ignores: ['ios/**', 'dist/**'] }];

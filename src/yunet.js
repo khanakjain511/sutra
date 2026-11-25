@@ -1,26 +1,12 @@
-import { FaceRejected } from './face-error';
+import { FaceRejected } from './face-error.js';
 
 const inputSize = 640;
-const strides = [8, 16, 32] as const;
+const strides = [8, 16, 32];
 const scoreThreshold = 0.85;
 const nmsThreshold = 0.3;
 const topK = 100;
 
-export type FaceTensor = {
-  data: ArrayLike<number>;
-  dims: readonly number[];
-};
-
-type Box = {
-  values: number[];
-  area: number;
-};
-
-function readPlane(
-  output: FaceTensor | undefined,
-  channels: number,
-  cells: number,
-) {
+function readPlane(output, channels, cells) {
   if (!output || output.dims[1] !== cells || output.dims[2] !== channels) {
     throw new FaceRejected('captureFailed');
   }
@@ -30,7 +16,7 @@ function readPlane(
   return output.data;
 }
 
-function overlap(left: Box, right: Box) {
+function overlap(left, right) {
   const x1 = Math.max(left.values[0] ?? 0, right.values[0] ?? 0);
   const y1 = Math.max(left.values[1] ?? 0, right.values[1] ?? 0);
   const x2 = Math.min(
@@ -46,11 +32,11 @@ function overlap(left: Box, right: Box) {
   return union <= 0 ? 0 : intersection / union;
 }
 
-function suppress(boxes: Box[]) {
+function suppress(boxes) {
   const ordered = [...boxes].sort(
     (left, right) => (right.values[14] ?? 0) - (left.values[14] ?? 0),
   );
-  const kept: Box[] = [];
+  const kept = [];
   for (const box of ordered.slice(0, topK)) {
     if (kept.every((chosen) => overlap(box, chosen) <= nmsThreshold)) {
       kept.push(box);
@@ -59,8 +45,8 @@ function suppress(boxes: Box[]) {
   return kept.map((box) => box.values);
 }
 
-export function decodeYuNet(outputs: Record<string, FaceTensor>) {
-  const faces: Box[] = [];
+export function decodeYuNet(outputs) {
+  const faces = [];
   for (const stride of strides) {
     const columns = inputSize / stride;
     const cells = columns * columns;

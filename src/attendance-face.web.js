@@ -1,40 +1,29 @@
 import { Asset } from 'expo-asset';
 import * as ort from 'onnxruntime-web/wasm';
 
-import yunetModel from '../modules/attendance-face/android/src/main/assets/attendance-face/yunet.onnx';
-import sfaceModel from '../modules/attendance-face/android/src/main/assets/attendance-face/sface.onnx';
+import yunetModel from '../assets/models/yunet.onnx';
+import sfaceModel from '../assets/models/sface.onnx';
 import wasmBinary from 'onnxruntime-web/dist/ort-wasm-simd-threaded.wasm';
 
-import { currentDay } from './attendance';
-import type { AttendanceFace } from './attendance-face-types';
-import { landmarksFromFace, warpAlignedFace } from './face-align';
-import { FaceRejected } from './face-error';
-import {
-  assessFace,
-  FaceSession,
-  normalizeFeature,
-  type FaceSample,
-} from './face-session';
-import { decodeTemplate, encodeTemplate } from './face-template';
-import { decodeYuNet, type FaceTensor } from './yunet';
+import { currentDay } from './attendance.js';
+import { landmarksFromFace, warpAlignedFace } from './face-align.js';
+import { FaceRejected } from './face-error.js';
+import { assessFace, FaceSession, normalizeFeature } from './face-session.js';
+import { decodeTemplate, encodeTemplate } from './face-template.js';
+import { decodeYuNet } from './yunet.js';
 
 const modelSize = 640;
 const databaseName = 'attendance-face-v1';
 
-type Models = {
-  detect: ort.InferenceSession;
-  recognize: ort.InferenceSession;
-};
-
-function requestToPromise<T>(request: IDBRequest<T>) {
-  return new Promise<T>((resolve, reject) => {
+function requestToPromise(request) {
+  return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error('storage'));
   });
 }
 
 function openDatabase() {
-  return new Promise<IDBDatabase>((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, 1);
     request.onupgradeneeded = () => {
       const database = request.result;
@@ -47,18 +36,18 @@ function openDatabase() {
   });
 }
 
-function storedBytes(value: unknown) {
+function storedBytes(value) {
   if (value instanceof Uint8Array) return value;
   if (value instanceof ArrayBuffer) return new Uint8Array(value);
   return null;
 }
 
-async function encryptionKey(create: boolean) {
+async function encryptionKey(create) {
   const database = await openDatabase();
   const existing = await requestToPromise(
     database.transaction('secrets').objectStore('secrets').get('key'),
   );
-  if (existing) return existing as CryptoKey;
+  if (existing) return existing;
   if (!create) throw new FaceRejected('captureFailed');
   const key = await crypto.subtle.generateKey(
     { name: 'AES-GCM', length: 256 },
@@ -99,7 +88,7 @@ async function readStored() {
   }
 }
 
-async function writeStored(day: string, feature: Float32Array) {
+async function writeStored(day, feature) {
   if (await readStored()) throw new FaceRejected('alreadyEnrolled');
   const plain = encodeTemplate(day, feature);
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -123,7 +112,7 @@ async function writeStored(day: string, feature: Float32Array) {
   );
 }
 
-async function assetBytes(moduleId: number) {
+async function assetBytes(moduleId) {
   const asset = Asset.fromModule(moduleId);
   await asset.downloadAsync();
   const response = await fetch(asset.localUri ?? asset.uri);
@@ -131,7 +120,7 @@ async function assetBytes(moduleId: number) {
   return response.arrayBuffer();
 }
 
-let models: Promise<Models> | null = null;
+let models = null;
 
 function loadModels() {
   models ??= (async () => {
@@ -154,7 +143,7 @@ function loadModels() {
   return models;
 }
 
-function bgrTensor(pixels: Uint8ClampedArray) {
+function bgrTensor(pixels) {
   const plane = modelSize * modelSize;
   const data = new Float32Array(3 * plane);
   for (let index = 0; index < plane; index += 1) {
@@ -166,10 +155,10 @@ function bgrTensor(pixels: Uint8ClampedArray) {
   return data;
 }
 
-async function decodePhoto(uri: string) {
+async function decodePhoto(uri) {
   if (!uri.startsWith('data:image/')) throw new FaceRejected('captureFailed');
   const image = new Image();
-  const loaded = new Promise<void>((resolve, reject) => {
+  const loaded = new Promise((resolve, reject) => {
     image.onload = () => resolve();
     image.onerror = () => reject(new FaceRejected('captureFailed'));
   });
@@ -194,8 +183,8 @@ async function decodePhoto(uri: string) {
   };
 }
 
-function tensors(outputs: ort.InferenceSession.OnnxValueMapType) {
-  const mapped: Record<string, FaceTensor> = {};
+function tensors(outputs) {
+  const mapped = {};
   for (const [name, value] of Object.entries(outputs)) {
     if (
       !(value instanceof ort.Tensor) ||
@@ -208,7 +197,7 @@ function tensors(outputs: ort.InferenceSession.OnnxValueMapType) {
   return mapped;
 }
 
-async function readFace(uri: string): Promise<FaceSample> {
+async function readFace(uri) {
   const photo = await decodePhoto(uri);
   const session = await loadModels().catch(() => {
     throw new FaceRejected('captureFailed');
@@ -232,15 +221,16 @@ async function readFace(uri: string): Promise<FaceSample> {
     ),
   });
   const embedding = recognized.fc1;
-  if (!(embedding instanceof ort.Tensor))
+  if (!(embedding instanceof ort.Tensor)) {
     throw new FaceRejected('captureFailed');
+  }
   return {
-    feature: normalizeFeature(embedding.data as ArrayLike<number>),
+    feature: normalizeFeature(embedding.data),
     yaw: assessFace(photo.contentWidth, photo.contentHeight, face),
   };
 }
 
-function statusFrom(error: unknown) {
+function statusFrom(error) {
   if (error instanceof FaceRejected) return error.status;
   return 'captureFailed';
 }
@@ -252,7 +242,7 @@ const session = new FaceSession(
   currentDay,
 );
 
-export const attendanceFace: AttendanceFace = {
+export const attendanceFace = {
   async getEnrollment() {
     return (await readStored())?.enrolledOn ?? null;
   },

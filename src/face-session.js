@@ -1,40 +1,18 @@
-import { FaceRejected } from './face-error';
-
-export type FaceSample = {
-  feature: Float32Array;
-  yaw: number;
-};
-
-type StoredFace = {
-  enrolledOn: string;
-  feature: Float32Array;
-};
-
-type Scan = {
-  enrollment: boolean;
-  sample: FaceSample;
-  startedAt: number;
-};
-
-type Confirmation = {
-  scan: Scan;
-  day: string;
-  expiresAt: number;
-};
+import { FaceRejected } from './face-error.js';
 
 const straightLimit = 0.2;
 const turnLimit = 0.19;
 const turnDelta = 0.17;
 const matchThreshold = 0.5;
 
-function copySample(sample: FaceSample): FaceSample {
+function copySample(sample) {
   if (sample.feature.length !== 128 || !Number.isFinite(sample.yaw)) {
     throw new FaceRejected('captureFailed');
   }
   return { feature: Float32Array.from(sample.feature), yaw: sample.yaw };
 }
 
-function matches(reference: Float32Array, sample: Float32Array) {
+function matches(reference, sample) {
   if (reference.length !== 128 || sample.length !== 128) return false;
   let sum = 0;
   for (let index = 0; index < 128; index += 1) {
@@ -43,11 +21,7 @@ function matches(reference: Float32Array, sample: Float32Array) {
   return sum >= matchThreshold;
 }
 
-export function assessFace(
-  width: number,
-  height: number,
-  face: ArrayLike<number>,
-) {
+export function assessFace(width, height, face) {
   const left = face[0] ?? Number.NaN;
   const top = face[1] ?? Number.NaN;
   const boxWidth = face[2] ?? Number.NaN;
@@ -78,7 +52,7 @@ export function assessFace(
   return yaw;
 }
 
-export function normalizeFeature(values: ArrayLike<number>) {
+export function normalizeFeature(values) {
   if (values.length !== 128) throw new FaceRejected('captureFailed');
   const feature = new Float32Array(128);
   let sum = 0;
@@ -99,25 +73,22 @@ export function normalizeFeature(values: ArrayLike<number>) {
 }
 
 export class FaceSession {
-  private previous: Scan | null = null;
-  private pending: Confirmation | null = null;
+  previous = null;
+  pending = null;
 
-  constructor(
-    private readonly readEnrollment: () => Promise<StoredFace | null>,
-    private readonly writeEnrollment: (
-      day: string,
-      feature: Float32Array,
-    ) => Promise<void>,
-    private readonly now: () => number,
-    private readonly today: () => string,
-  ) {}
+  constructor(readEnrollment, writeEnrollment, now, today) {
+    this.readEnrollment = readEnrollment;
+    this.writeEnrollment = writeEnrollment;
+    this.now = now;
+    this.today = today;
+  }
 
   cancel() {
     this.previous = null;
     this.pending = null;
   }
 
-  async captureStraight(sample: FaceSample, enrollment: boolean) {
+  async captureStraight(sample, enrollment) {
     this.cancel();
     const captured = copySample(sample);
     if (Math.abs(captured.yaw) > straightLimit) return 'lookStraight';
@@ -135,7 +106,7 @@ export class FaceSession {
     return 'turn';
   }
 
-  async captureTurn(sample: FaceSample) {
+  async captureTurn(sample) {
     const captured = copySample(sample);
     const anchor = this.previous;
     if (!anchor) return 'scanExpired';

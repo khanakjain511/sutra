@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { attendanceHistory, type Subject } from './attendance';
+import { attendanceHistory } from './attendance';
 import { Glyph, IconDisc, Section } from './ui';
 
 const monthLabel = new Intl.DateTimeFormat('en-IN', {
@@ -16,21 +16,13 @@ const dayLabel = new Intl.DateTimeFormat('en-IN', {
   timeZone: 'UTC',
 });
 
-function shiftMonth(month: string, offset: number) {
+function shiftMonth(month, offset) {
   const date = new Date(`${month}-01T00:00:00Z`);
   date.setUTCMonth(date.getUTCMonth() + offset);
   return date.toISOString().slice(0, 7);
 }
 
-function MonthButton({
-  previous,
-  disabled,
-  onPress,
-}: {
-  previous?: boolean;
-  disabled: boolean;
-  onPress: () => void;
-}) {
+function MonthButton({ previous, disabled, onPress }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -48,16 +40,8 @@ function MonthButton({
   );
 }
 
-export function History({
-  subjects,
-  enrolledOn,
-  today,
-}: {
-  subjects: Subject[];
-  enrolledOn: string | null;
-  today: string;
-}) {
-  const [chosenMonth, setMonth] = useState<string | null>(null);
+export function History({ subjects, enrolledOn, today }) {
+  const [chosenMonth, setMonth] = useState(null);
   const currentMonth = today.slice(0, 7);
   const firstMonth = enrolledOn?.slice(0, 7) ?? currentMonth;
   const month =

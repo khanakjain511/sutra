@@ -1,11 +1,6 @@
-android
 ios
 dist
 coverage
 node_modules
 .expo
 package-lock.json
-uniwind-types.d.ts
-
-modules/*/android/build
-modules/*/android/src/main/assets

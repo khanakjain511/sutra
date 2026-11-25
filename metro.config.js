@@ -14,7 +14,6 @@ http.ServerResponse.prototype.writeHead = function writeHeadWithIsolation(
 
 const config = withUniwindConfig(getDefaultConfig(__dirname), {
   cssEntryFile: './global.css',
-  dtsFile: './uniwind-types.d.ts',
 });
 
 config.resolver.assetExts.push('onnx', 'wasm');

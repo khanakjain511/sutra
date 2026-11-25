@@ -7,17 +7,9 @@ const localDayFormatter = new Intl.DateTimeFormat('en-IN', {
   timeZone: 'Asia/Kolkata',
 });
 
-export const defaultWeekdays = [1, 2, 3, 4, 5] as const;
+export const defaultWeekdays = [1, 2, 3, 4, 5];
 
-export type Subject = {
-  id: string;
-  name: string;
-  weekdays: number[];
-  startsOn: string;
-  log: string[];
-};
-
-export function isDay(value: unknown): value is string {
+export function isDay(value) {
   if (typeof value !== 'string' || !dateKey.test(value)) return false;
   const date = new Date(`${value}T00:00:00Z`);
   return (
@@ -27,46 +19,44 @@ export function isDay(value: unknown): value is string {
 
 export function currentDay(date = new Date()) {
   const parts = localDayFormatter.formatToParts(date);
-  const part = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((value) => value.type === type)?.value;
+  const part = (type) => parts.find((value) => value.type === type)?.value;
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
-function utcDate(day: string) {
+function utcDate(day) {
   return new Date(`${day}T00:00:00Z`);
 }
 
-export function isScheduledDay(
-  day: string,
-  schedule: readonly number[] = defaultWeekdays,
-) {
+export function isScheduledDay(day, schedule = defaultWeekdays) {
   return isDay(day) && schedule.includes(utcDate(day).getUTCDay());
 }
 
-function calendarDays(value: unknown): string[] {
-  if (!Array.isArray(value) || !value.every(isDay))
+function calendarDays(value) {
+  if (!Array.isArray(value) || !value.every(isDay)) {
     throw new Error('Invalid attendance history');
+  }
   return [...new Set(value)].sort();
 }
 
-export function readLog(raw: string | null) {
+export function readLog(raw) {
   return raw === null ? [] : calendarDays(JSON.parse(raw));
 }
 
-function weekdays(values: unknown) {
+function weekdays(values) {
   if (
     !Array.isArray(values) ||
     !values.length ||
     values.some(
-      (day: unknown) =>
+      (day) =>
         typeof day !== 'number' || !Number.isInteger(day) || day < 0 || day > 6,
     )
-  )
+  ) {
     throw new Error('Select at least one class day.');
-  return [...new Set<number>(values)].sort((a, b) => a - b);
+  }
+  return [...new Set(values)].sort((a, b) => a - b);
 }
 
-function subjectName(value: string) {
+function subjectName(value) {
   const name = value.normalize('NFKC').trim().replace(/\s+/gu, ' ');
   if (!name || name.length > 48 || /\p{C}/u.test(name)) {
     throw new Error('Enter a subject name up to 48 characters.');
@@ -74,33 +64,32 @@ function subjectName(value: string) {
   return name;
 }
 
-function subjectId(name: string) {
+function subjectId(name) {
   return name.toLocaleLowerCase('en-IN');
 }
 
-export function readSubjects(raw: string | null): Subject[] {
+export function readSubjects(raw) {
   if (raw === null) return [];
-  const data: unknown = JSON.parse(raw);
+  const data = JSON.parse(raw);
   if (!Array.isArray(data)) throw new Error('Invalid subject list');
-  const ids = new Set<string>();
-  return data.map((value: unknown) => {
+  const ids = new Set();
+  return data.map((value) => {
     if (
       !value ||
       typeof value !== 'object' ||
-      !('name' in value) ||
       typeof value.name !== 'string' ||
-      !('id' in value) ||
       typeof value.id !== 'string' ||
-      !('startsOn' in value) ||
       !isDay(value.startsOn) ||
       !('weekdays' in value) ||
       !('log' in value)
-    )
+    ) {
       throw new Error('Invalid saved subject');
+    }
     const name = subjectName(value.name);
     const id = subjectId(name);
-    if (id !== value.id || ids.has(id))
+    if (id !== value.id || ids.has(id)) {
       throw new Error('Invalid subject identity');
+    }
     ids.add(id);
     return {
       name,
@@ -112,25 +101,17 @@ export function readSubjects(raw: string | null): Subject[] {
   });
 }
 
-export function createSubject(
-  subjects: Subject[],
-  label: string,
-  schedule: readonly number[],
-  startsOn: string,
-): Subject {
+export function createSubject(subjects, label, schedule, startsOn) {
   const name = subjectName(label);
   const id = subjectId(name);
-  if (subjects.some((item) => item.id === id))
+  if (subjects.some((item) => item.id === id)) {
     throw new Error('A subject with this name already exists.');
+  }
   if (!isDay(startsOn)) throw new Error('Could not determine today’s date.');
   return { id, name, weekdays: weekdays(schedule), startsOn, log: [] };
 }
 
-function countScheduled(
-  start: string,
-  today: string,
-  schedule: readonly number[],
-) {
+function countScheduled(start, today, schedule) {
   const first = utcDate(start);
   const days = (utcDate(today).getTime() - first.getTime()) / dayLength;
   const fullWeeks = Math.floor(days / 7);
@@ -143,10 +124,10 @@ function countScheduled(
 }
 
 export function attendanceSummary(
-  enrolledOn: string | null,
-  log: string[],
-  today: string,
-  schedule: readonly number[] = defaultWeekdays,
+  enrolledOn,
+  log,
+  today,
+  schedule = defaultWeekdays,
 ) {
   if (!isDay(enrolledOn) || !isDay(today) || enrolledOn > today) {
     return { present: 0, total: 0, percentage: null, checkedIn: false };
@@ -167,11 +148,7 @@ export function attendanceSummary(
   };
 }
 
-export function subjectSummary(
-  subject: Subject,
-  enrolledOn: string | null,
-  today: string,
-) {
+export function subjectSummary(subject, enrolledOn, today) {
   const start = enrolledOn
     ? subject.startsOn > enrolledOn
       ? subject.startsOn
@@ -180,11 +157,7 @@ export function subjectSummary(
   return attendanceSummary(start, subject.log, today, subject.weekdays);
 }
 
-export function overallSummary(
-  subjects: Subject[],
-  enrolledOn: string | null,
-  today: string,
-) {
+export function overallSummary(subjects, enrolledOn, today) {
   let present = 0;
   let total = 0;
   for (const subject of subjects) {
@@ -200,11 +173,11 @@ export function overallSummary(
 }
 
 export function markToday(
-  log: string[],
-  enrolledOn: string,
-  scannedDay: string,
-  today: string,
-  schedule: readonly number[] = defaultWeekdays,
+  log,
+  enrolledOn,
+  scannedDay,
+  today,
+  schedule = defaultWeekdays,
 ) {
   if (
     scannedDay !== today ||
@@ -217,12 +190,7 @@ export function markToday(
   return log.includes(today) ? log : [...log, today].sort();
 }
 
-export function markSubject(
-  subject: Subject,
-  enrolledOn: string,
-  scannedDay: string,
-  today: string,
-) {
+export function markSubject(subject, enrolledOn, scannedDay, today) {
   const start = subject.startsOn > enrolledOn ? subject.startsOn : enrolledOn;
   const log = markToday(
     subject.log,
@@ -234,27 +202,14 @@ export function markSubject(
   return log === subject.log ? subject : { ...subject, log };
 }
 
-export type HistoryEntry = {
-  subjectId: string;
-  name: string;
-  day: string;
-  present: boolean;
-};
-
-export function attendanceHistory(
-  subjects: Subject[],
-  enrolledOn: string | null,
-  today: string,
-  month: string,
-): HistoryEntry[] {
+export function attendanceHistory(subjects, enrolledOn, today, month) {
   const first = `${month}-01`;
-  if (!isDay(first) || !isDay(enrolledOn) || !isDay(today) || first > today)
+  if (!isDay(first) || !isDay(enrolledOn) || !isDay(today) || first > today) {
     return [];
+  }
   const date = utcDate(first);
-  const entries: HistoryEntry[] = [];
-  const logs = subjects.map(
-    (subject) => [subject, new Set(subject.log)] as const,
-  );
+  const entries = [];
+  const logs = subjects.map((subject) => [subject, new Set(subject.log)]);
   for (
     ;
     date.toISOString().startsWith(month);
@@ -267,8 +222,9 @@ export function attendanceHistory(
       if (
         day < subject.startsOn ||
         !subject.weekdays.includes(date.getUTCDay())
-      )
+      ) {
         continue;
+      }
       const present = log.has(day);
       if (day === today && !present) continue;
       entries.push({ subjectId: subject.id, name: subject.name, day, present });

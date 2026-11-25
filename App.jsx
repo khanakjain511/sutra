@@ -3,13 +3,7 @@ import './global.css';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ComponentRef,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AppState,
   Platform,
@@ -37,7 +31,6 @@ import {
   readLog,
   readSubjects,
   subjectSummary,
-  type Subject,
 } from './src/attendance';
 import { FaceCheckIn } from './src/face-check-in';
 import { History } from './src/history';
@@ -59,14 +52,15 @@ const dateFormatter = new Intl.DateTimeFormat('en-IN', {
 function Attendance() {
   const { tab, select } = useTabs();
   const [today, setToday] = useState(currentDay);
-  const [enrolledOn, setEnrolledOn] = useState<string | null>(null);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [selection, setSelection] = useState<string | null>(null);
-  const [load, setLoad] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [enrolledOn, setEnrolledOn] = useState(null);
+  const [subjects, setSubjects] = useState([]);
+  const [selection, setSelection] = useState(null);
+  const [load, setLoad] = useState('loading');
   const [revision, setRevision] = useState(0);
-  const latestSubjects = useRef<Subject[]>([]);
-  const writes = useRef<Promise<unknown>>(Promise.resolve());
-  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const latestSubjects = useRef([]);
+  const writes = useRef(Promise.resolve());
+  const scroll = useRef(null);
+
   const revealCheckIn = useCallback(() => {
     requestAnimationFrame(() =>
       scroll.current?.scrollToEnd({ animated: true }),
@@ -130,7 +124,7 @@ function Attendance() {
     isScheduledDay(today, selected.weekdays);
   const checkedIn = subject?.checkedIn ?? false;
 
-  function writeSubjects(change: (current: Subject[]) => Subject[]) {
+  function writeSubjects(change) {
     const operation = writes.current
       .catch(() => undefined)
       .then(async () => {
@@ -148,7 +142,7 @@ function Attendance() {
     return operation;
   }
 
-  async function addSubject(name: string, schedule: number[]) {
+  async function addSubject(name, schedule) {
     const startsOn = currentDay();
     await writeSubjects((current) => [
       ...current,
@@ -158,13 +152,14 @@ function Attendance() {
     setToday(startsOn);
   }
 
-  async function recordConfirmation(day: string, enrollment: boolean) {
+  async function recordConfirmation(day, enrollment) {
     if (enrollment) {
       setEnrolledOn(day);
       return;
     }
-    if (!enrolledOn || !selected)
+    if (!enrolledOn || !selected) {
       throw new Error('No subject selected for attendance');
+    }
     const subjectId = selected.id;
     const checkInDay = currentDay();
     await writeSubjects((current) =>

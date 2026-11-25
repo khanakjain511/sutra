@@ -1,13 +1,6 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
-import {
-  AppState,
-  BackHandler,
-  Linking,
-  Platform,
-  Text,
-  View,
-} from 'react-native';
+import { AppState, Linking, Platform, Text, View } from 'react-native';
 import { withUniwind } from 'uniwind';
 
 import { attendanceFace } from './attendance-face';
@@ -16,10 +9,7 @@ import { Button, Glyph, IconDisc, Loading, Status } from './ui';
 
 const Camera = withUniwind(CameraView);
 
-type Step = 'idle' | 'straight' | 'turn' | 'confirm';
-type Feedback = { text: string; error?: boolean };
-
-const scanMessages: Record<string, string> = {
+const scanMessages = {
   noFace: 'No face found. Use even lighting and look into the camera.',
   multipleFaces: 'Only one person should be in the frame.',
   centerFace: 'Move closer and keep your whole face inside the guide.',
@@ -41,20 +31,13 @@ export function FaceCheckIn({
   subjectName,
   onConfirmed,
   onReveal,
-}: {
-  enrolled: boolean;
-  checkedIn: boolean;
-  scheduled: boolean;
-  subjectName?: string;
-  onConfirmed: (day: string, enrollment: boolean) => Promise<void>;
-  onReveal: () => void;
 }) {
   const [permission, requestPermission] = useCameraPermissions();
-  const [step, setStep] = useState<Step>('idle');
+  const [step, setStep] = useState('idle');
   const [cameraReady, setCameraReady] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const camera = useRef<CameraView>(null);
+  const [feedback, setFeedback] = useState(null);
+  const camera = useRef(null);
   const operation = useRef(0);
   const working = useRef(false);
   const confirming = useRef(false);
@@ -83,7 +66,7 @@ export function FaceCheckIn({
     };
   }, []);
 
-  function report(status: string) {
+  function report(status) {
     setFeedback({
       text:
         scanMessages[status] ?? 'Unable to complete the face scan. Try again.',
@@ -96,8 +79,9 @@ export function FaceCheckIn({
       !attendanceFace ||
       working.current ||
       (enrolled && (!subjectName || !scheduled || checkedIn))
-    )
+    ) {
       return;
+    }
     working.current = true;
     setBusy(true);
     setFeedback(null);
@@ -128,8 +112,9 @@ export function FaceCheckIn({
   }
 
   async function capture() {
-    if (!attendanceFace || !camera.current || !cameraReady || working.current)
+    if (!attendanceFace || !camera.current || !cameraReady || working.current) {
       return;
+    }
     if (step !== 'straight' && step !== 'turn') return;
     const id = operation.current;
     const module = attendanceFace;
@@ -219,18 +204,6 @@ export function FaceCheckIn({
     setFeedback(null);
     void attendanceFace?.cancel().catch(() => undefined);
   }
-
-  useEffect(() => {
-    if (step === 'idle') return;
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        cancel();
-        return true;
-      },
-    );
-    return () => subscription.remove();
-  }, [step]);
 
   const isScanning = step === 'straight' || step === 'turn';
   const title = enrolled ? 'Face check-in' : 'Set up your face';
@@ -334,7 +307,7 @@ export function FaceCheckIn({
             <IconDisc name={checkedIn ? 'checkmark-outline' : 'scan-outline'} />
             <Text className="flex-1 text-[15px] leading-5 text-muted">
               {!attendanceFace
-                ? 'This build cannot scan a face. Use a browser, or install the iOS or Android app.'
+                ? 'This build cannot scan a face. Use a browser, or install the iOS app.'
                 : checkedIn
                   ? 'Attendance for this subject is recorded today.'
                   : !enrolled

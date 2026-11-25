@@ -1,26 +1,13 @@
 import { Text, View } from 'react-native';
 
-import type { Subject } from './attendance';
 import { formatSchedule } from './subjects';
-import { IconDisc, type IconName } from './ui';
+import { IconDisc } from './ui';
 
-type Summary = { present: number; total: number; percentage: number | null };
-
-function percent(value: number | null) {
+function percent(value) {
   return value === null ? '—' : `${value}%`;
 }
 
-function Metric({
-  label,
-  value,
-  hint,
-  icon,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  icon: IconName;
-}) {
+function Metric({ label, value, hint, icon }) {
   return (
     <View className="min-w-0 flex-1 gap-3 rounded-[23px] bg-white p-3">
       <IconDisc name={icon} />
@@ -37,7 +24,7 @@ function Metric({
   );
 }
 
-export function OverallMetrics({ summary }: { summary: Summary }) {
+export function OverallMetrics({ summary }) {
   return (
     <View className="flex-row items-stretch gap-2.5">
       <Metric
@@ -56,13 +43,7 @@ export function OverallMetrics({ summary }: { summary: Summary }) {
   );
 }
 
-export function SubjectSummaryCard({
-  subject,
-  summary,
-}: {
-  subject: Subject;
-  summary: Summary;
-}) {
+export function SubjectSummaryCard({ subject, summary }) {
   return (
     <View className="gap-2 rounded-[22px] bg-white p-3.5">
       <Text numberOfLines={2} className="text-[17px] font-semibold text-ink">
@@ -83,15 +64,7 @@ export function SubjectSummaryCard({
   );
 }
 
-export function TodayCard({
-  name,
-  scheduled,
-  checkedIn,
-}: {
-  name?: string;
-  scheduled: boolean;
-  checkedIn: boolean;
-}) {
+export function TodayCard({ name, scheduled, checkedIn }) {
   const status = !name
     ? 'Choose subject'
     : checkedIn
